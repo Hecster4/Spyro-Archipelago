@@ -36,7 +36,7 @@ Currently the only goal is to defeat Gnasty Gnorc but I am planning to add more 
 2. Download and install the latest release of Duckstaion Emulator
 3. Download and intsall the latest release of Spyro the Dragon apworld
 
-# Setup
+## Setup
 
 1. Move Spyro the Dragon.cue/bin into Duckstation games folder
 2. Open Duckstation and go to Setting/Debugging and enable Export Shared Memory

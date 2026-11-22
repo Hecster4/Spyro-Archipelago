@@ -91,10 +91,10 @@ def OpenFileMappingW(dwDesiredAccess, bInheritHandle, lpName):
     return hMapping
 
 def MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap):
-    baseAddress = wintypes.LPVOID(kernel32.MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap))
-    if baseAddress == None:
+    mapViewBaseAddress = wintypes.LPVOID(kernel32.MapViewOfFile(hFileMappingObject, dwDesiredAccess, dwFileOffsetHigh, dwFileOffsetLow, dwNumberOfBytesToMap))
+    if mapViewBaseAddress == None:
         raise ctypes.WinError(ctypes.get_last_error())
-    return baseAddress
+    return mapViewBaseAddress
 
 def GetCurrentProcess():
     pHandle = wintypes.HANDLE(kernel32.GetCurrentProcess())

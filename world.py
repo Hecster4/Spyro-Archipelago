@@ -38,5 +38,5 @@ class SpyroWorld(World):
     def fill_slot_data(self) -> Mapping[str, Any]:
         # If you need access to the player's chosen options on the client side, there is a helper for that.
         return self.options.as_dict(
-            "deathlink", "portal_locks", "starting_levels"
+            "deathlink", "portal_locks", "starting_levels", "include_gnastys_loot"
         )

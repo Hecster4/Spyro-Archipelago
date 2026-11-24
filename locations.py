@@ -256,7 +256,28 @@ LOCATION_NAME_TO_ID = {
     "Gnasty Gnorc: 300 Gems": 244,
     "Gnasty Gnorc: 400 Gems": 245,
     "Gnasty Gnorc: 500 Gems": 246,
-    "Gnasty Gnorc: 100% Complete": 247
+    "Gnasty Gnorc: 100% Complete": 247,
+    "Gnastys Loot: 100 Gems": 248,
+    "Gnastys Loot: 200 Gems": 249,
+    "Gnastys Loot: 300 Gems": 250,
+    "Gnastys Loot: 400 Gems": 251,
+    "Gnastys Loot: 500 Gems": 252,
+    "Gnastys Loot: 600 Gems": 253,
+    "Gnastys Loot: 700 Gems": 254,
+    "Gnastys Loot: 800 Gems": 255,
+    "Gnastys Loot: 900 Gems": 256,
+    "Gnastys Loot: 1000 Gems": 257,
+    "Gnastys Loot: 1100 Gems": 258,
+    "Gnastys Loot: 1200 Gems": 259,
+    "Gnastys Loot: 1300 Gems": 260,
+    "Gnastys Loot: 1400 Gems": 261,
+    "Gnastys Loot: 1500 Gems": 262,
+    "Gnastys Loot: 1600 Gems": 263,
+    "Gnastys Loot: 1700 Gems": 264,
+    "Gnastys Loot: 1800 Gems": 265,
+    "Gnastys Loot: 1900 Gems": 266,
+    "Gnastys Loot: 2000 Gems": 267,
+    "Gnastys Loot: 100% Complete": 268,
     }
 
 class SpyroLocation(Location):
@@ -686,6 +707,35 @@ def create_regular_locations(world: SpyroWorld) -> None:
         "Gnasty Gnorc: 100% Complete"
         ])
     Gnasty_Gnorc.add_locations(Gnasty_Gnorc_Locations, SpyroLocation)
+    
+    if world.options.include_gnastys_loot:
+        
+        Gnastys_Loot = world.get_region("Gnastys Loot")
+        
+        Gnastys_Loot_Locations = get_location_names_with_ids([
+            "Gnastys Loot: 100 Gems",
+            "Gnastys Loot: 200 Gems",
+            "Gnastys Loot: 300 Gems",
+            "Gnastys Loot: 400 Gems",
+            "Gnastys Loot: 500 Gems",
+            "Gnastys Loot: 600 Gems",
+            "Gnastys Loot: 700 Gems",
+            "Gnastys Loot: 800 Gems",
+            "Gnastys Loot: 900 Gems",
+            "Gnastys Loot: 1000 Gems",
+            "Gnastys Loot: 1100 Gems",
+            "Gnastys Loot: 1200 Gems",
+            "Gnastys Loot: 1300 Gems",
+            "Gnastys Loot: 1400 Gems",
+            "Gnastys Loot: 1500 Gems",
+            "Gnastys Loot: 1600 Gems",
+            "Gnastys Loot: 1700 Gems",
+            "Gnastys Loot: 1800 Gems",
+            "Gnastys Loot: 1900 Gems",
+            "Gnastys Loot: 2000 Gems",
+            "Gnastys Loot: 100% Complete"
+            ])
+        Gnastys_Loot.add_locations(Gnastys_Loot_Locations, SpyroLocation)
     
 def create_events(world: SpyroWorld) -> None:
     Gnasty_Gnorc = world.get_region("Gnasty Gnorc")

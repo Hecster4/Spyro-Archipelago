@@ -1457,7 +1457,7 @@ async def mainloop(ctx: CommonContext):
         
         #Checking the current game state to it has a value of 4, which is the value for dying
         ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
-        if currentGameState.value == 4 and deathlink == True and ctx.last_death_link < time.time() - 1:
+        if currentGameState.value == 4 and ctx.slot_data["deathlink"] and ctx.last_death_link < time.time() - 1:
             await ctx.send_death("Spyro meet a tragic fate")
 
         await asyncio.sleep(0.033)

@@ -245,7 +245,28 @@ locations = [
     "Gnasty Gnorc: 300 Gems",
     "Gnasty Gnorc: 400 Gems",
     "Gnasty Gnorc: 500 Gems",
-    "Gnasty Gnorc: 100% Complete"
+    "Gnasty Gnorc: 100% Complete",
+    "Gnastys Loot: 100 Gems",
+    "Gnastys Loot: 200 Gems",
+    "Gnastys Loot: 300 Gems",
+    "Gnastys Loot: 400 Gems",
+    "Gnastys Loot: 500 Gems",
+    "Gnastys Loot: 600 Gems",
+    "Gnastys Loot: 700 Gems",
+    "Gnastys Loot: 800 Gems",
+    "Gnastys Loot: 900 Gems",
+    "Gnastys Loot: 1000 Gems",
+    "Gnastys Loot: 1100 Gems",
+    "Gnastys Loot: 1200 Gems",
+    "Gnastys Loot: 1300 Gems",
+    "Gnastys Loot: 1400 Gems",
+    "Gnastys Loot: 1500 Gems",
+    "Gnastys Loot: 1600 Gems",
+    "Gnastys Loot: 1700 Gems",
+    "Gnastys Loot: 1800 Gems",
+    "Gnastys Loot: 1900 Gems",
+    "Gnastys Loot: 2000 Gems",
+    "Gnastys Loot: 100% Complete"
     ]
 
 items = {

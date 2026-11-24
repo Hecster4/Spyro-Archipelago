@@ -60,11 +60,12 @@ def set_all_entrance_rules(world: SpyroWorld) -> None:
         Gnorc_Gnexus_to_Gnorc_Cove = world.get_entrance("Gnorc Gnexus to Gnorc Cove")
         Gnorc_Gnexus_to_Twilight_Harbor = world.get_entrance("Gnorc Gnexus to Twilight Harbor")
         Gnorc_Gnexus_to_Gnasty_Gnorc = world.get_entrance("Gnorc Gnexus to Gnasty Gnorc")
+        Gnorc_Gnexus_to_Gnastys_Loot = world.get_entrance("Gnorc Gnexus to Gnastys Loot")
         
         world.set_rule(Artisans_to_Stone_Hill, Has("Stone Hill Unlocked"))
         world.set_rule(Artisans_to_Dark_Hollow, Has("Dark Hollow Unlocked"))
         world.set_rule(Artisans_to_Town_Square, Has("Town Square Unlocked"))
-        world.set_rule(Artisans_to_Toasty, Has("Toasty Unlocked") & (Has("Stone Hill Unlocked") | Has("Dark Hollow Unlocked") | Has("Town Square Unlocked") | Has("Sunny Flight Unlocked")))
+        world.set_rule(Artisans_to_Toasty, Has("Toasty Unlocked"))
         world.set_rule(Artisans_to_Sunny_Flight, Has("Sunny Flight Unlocked"))
         world.set_rule(Peace_Keepers_to_Dry_Canyon, Has("Dry Canyon Unlocked"))
         world.set_rule(Peace_Keepers_to_Cliff_Town, Has("Cliff Town Unlocked"))
@@ -87,8 +88,9 @@ def set_all_entrance_rules(world: SpyroWorld) -> None:
         world.set_rule(Dream_Weavers_to_Jacques, Has("Jacques Unlocked"))
         world.set_rule(Dream_Weavers_to_Icy_Flight, Has("Icy Flight Unlocked"))
         world.set_rule(Gnorc_Gnexus_to_Gnorc_Cove, Has("Gnorc Cove Unlocked"))
-        world.set_rule(Gnorc_Gnexus_to_Twilight_Harbor, Has("Twilight Harbor Unlocked") & Has("Gnorc Cove Unlocked"))
-        world.set_rule(Gnorc_Gnexus_to_Gnasty_Gnorc, Has("Gnasty Gnorc Unlocked") & Has("Twilight Harbor Unlocked") & Has("Gnorc Cove Unlocked"))
+        world.set_rule(Gnorc_Gnexus_to_Twilight_Harbor, Has("Twilight Harbor Unlocked"))
+        world.set_rule(Gnorc_Gnexus_to_Gnasty_Gnorc, Has("Gnasty Gnorc Unlocked"))
+        world.set_rule(Gnorc_Gnexus_to_Gnastys_Loot, Has("Gnastys Loot Unlocked"))
     
 def set_all_location_rules(world: SpyroWorld) -> None:
     pass

@@ -29,14 +29,24 @@ class StartingLevels(Range):
     
     default = 1
     
+class IncludeGnastysLoot(Toggle):
+    """
+    Include all gem checks and 100% completion of Gnasty's Loot as checks, if level
+    locks are enabled you can access Gnasty's Loot once Gnasty's Loot Unlocked is received.
+    """
+    display_name = "Include Gnasty's Loot"
+    
+    default = 'false'
+    
 @dataclass
 class SpyroOptions(PerGameCommonOptions):
+    deathlink: Deathlink
     portal_locks: PortalLocks
     starting_levels: StartingLevels
-    deathlink: Deathlink
+    include_gnastys_loot: IncludeGnastysLoot
     
 option_groups = [
     OptionGroup(
         "Gameplay Options",
-        [Deathlink, PortalLocks, StartingLevels]
+        [Deathlink, PortalLocks, StartingLevels, IncludeGnastysLoot]
     )]

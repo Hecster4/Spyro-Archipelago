@@ -45,7 +45,8 @@ ITEM_NAME_TO_ID = {
     "Icy Flight Unlocked": 55,
     "Gnorc Cove Unlocked": 61,
     "Twilight Harbor Unlocked": 62,
-    "Gnasty Gnorc Unlocked": 63
+    "Gnasty Gnorc Unlocked": 63,
+    "Gnastys Loot Unlocked": 64,
     }
 
 DEFAULT_ITEM_CLASSIFICATIONS = {
@@ -80,7 +81,8 @@ DEFAULT_ITEM_CLASSIFICATIONS = {
     "Icy Flight Unlocked": ItemClassification.progression,
     "Gnorc Cove Unlocked": ItemClassification.progression,
     "Twilight Harbor Unlocked": ItemClassification.progression,
-    "Gnasty Gnorc Unlocked": ItemClassification.progression
+    "Gnasty Gnorc Unlocked": ItemClassification.progression,
+    "Gnastys Loot Unlocked": ItemClassification.progression
     }
 
 class SpyroItem(Item):
@@ -97,6 +99,10 @@ def create_all_items(world: SpyroWorld) -> None:
     itempool: list[Item] = []
     for i in range(120):
         itempool.append(world.create_item("100 Gems"))
+    if world.options.include_gnastys_loot:
+        for i in range(20):
+            itempool.append(world.create_item("100 Gems"))
+        itempool.append(world.create_item("Gnastys Loot Unlocked"))
     for i in range(80):
         itempool.append(world.create_item("Dragon"))
     for i in range(12):

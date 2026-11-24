@@ -17,15 +17,11 @@ from .Archipelago_Info import locations, items
 from .c_funcs import PROCESSENTRY32W, CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, OpenFileMappingW, MapViewOfFile, GetCurrentProcess, ReadProcessMemory, WriteProcessMemory, CloseHandle
 
 TH32CS_SNAPPROCESS = 0x00000002
-TH32CS_SNAPMODULE   = 0x00000008
-TH32CS_SNAPMODULE32 = 0x00000010
-PROCESS_ALL_ACCESS = 0xFFFF
 FILE_MAP_WRITE = 0x0002
 FILE_MAP_READ = 0x0004
-RAMOffset = 0xAA6440
 szModuleName = "duckstation-qt-x64-ReleaseLTCG.exe"
-gameName = b'BASCUS-94228SPYRO'
-gameNameOffset = 0xBA92
+dragonHeadChecksArtisans = [0x7A6A9, 0x7A6AA, 0x7A6AB, 0x7A6AC]
+dragonHeadChecksGnorcGnexus = [0x7A6C7, 0x7A6C8]
 totalLivesOffset = 0x7582C
 totalGemsOffset = 0x75860
 totalDragonsOffset = 0x75750
@@ -472,8 +468,6 @@ class CommonContext:
 
         # execution
         self.keep_alive_task = asyncio.create_task(keep_alive(self), name="Bouncy")
-        
-        self.slot_data: dict = {"deathlink": False, "portal_locks": False}
 
     @property
     def suggested_address(self) -> str:
@@ -796,12 +790,12 @@ class CommonContext:
         else:
             logger.info(f"DeathLink: Received from {data['source']}")
         
-        ReadProcessMemory(self.hProcess, ctypes.cast(self.RAMAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+        ReadProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
         if value.value != 0:
             value.value -= 1
-        WriteProcessMemory(self.hProcess, ctypes.cast(self.RAMAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+        WriteProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
         byte = ctypes.c_byte(4)
-        WriteProcessMemory(self.hProcess, ctypes.cast(self.RAMAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+        WriteProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
 
     async def send_death(self, death_text: str = ""):
         """Helper function to send a deathlink using death_text as the unique death cause string."""
@@ -1078,6 +1072,11 @@ async def process_server_cmd(ctx: CommonContext, args: dict):
         totalGems.value = 0
         totalDragons.value = 0
         totalEggs.value = 0
+        
+        await GetInitialValues(ctx.hProcess, ctx.mapViewBaseAddress)
+            
+        run_mainloop = asyncio.create_task(mainloop(ctx), name="mainloop")
+        
         # on a switch to a different session, clear session state before stale checks/goal are replayed below
         identity = (ctx.server_seed_name, ctx.team, ctx.slot)
         if ctx.connected_identity is not None and identity != ctx.connected_identity:
@@ -1146,9 +1145,9 @@ async def process_server_cmd(ctx: CommonContext, args: dict):
             elif network_item.item == 3:
                 totalEggs.value += 1
             elif network_item.item == 4 and start_index != len(ctx.items_received):
-                ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                 value.value += 1
-                WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
         ctx.watcher_event.set()
 
     elif cmd == 'LocationInfo':
@@ -1295,51 +1294,31 @@ def GetPID() -> wintypes.DWORD:
     return pid
 
 
-def GetModuleBaseAddress(pid) -> wintypes.LPVOID:
-    ModuleBaseAddress = wintypes.LPVOID()
-    
-    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid)
-    
-    me32 = MODULEENTRY32W()
-    me32.dwSize = ctypes.sizeof(MODULEENTRY32W)
-    
-    Module32FirstW(hSnapshot, ctypes.byref(me32))
-    while True:
-        if me32.szModule == szModuleName:
-            ModuleBaseAddress = ctypes.cast(me32.modBaseAddr, wintypes.LPVOID)
-            break
-        Module32NextW(hSnapshot, ctypes.byref(me32))
-        
-    CloseHandle(hSnapshot)
-    
-    return ModuleBaseAddress
-
-
-def GetRAMAddress(lpName) -> wintypes.LPVOID:
+def GetMapViewBaseAddress(lpName) -> wintypes.LPVOID:
     hMapping = OpenFileMappingW(FILE_MAP_WRITE | FILE_MAP_READ, False, lpName)
-    RAMAddress = MapViewOfFile(hMapping, FILE_MAP_WRITE | FILE_MAP_READ, 0, 0, 0) 
+    mapViewBaseAddress = MapViewOfFile(hMapping, FILE_MAP_WRITE | FILE_MAP_READ, 0, 0, 0) 
         
-    return RAMAddress
+    return mapViewBaseAddress
 
 
-async def GetInitialValues(hProcess, RAMAddress):
+async def GetInitialValues(hProcess, mapViewBaseAddress):
     logger.info("Waiting for player to be in game")
     while True:
-        ReadProcessMemory(hProcess, ctypes.cast(RAMAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
+        ReadProcessMemory(hProcess, ctypes.cast(mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
         if currentGameState.value != 13:
             for level in levels:
                 level = levels[level]
-                ReadProcessMemory(hProcess, ctypes.cast(RAMAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                ReadProcessMemory(hProcess, ctypes.cast(mapViewBaseAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                 if value.value % 100 != 0:
                     value.value -= value.value % 100 
                 level.gemsTotal = value.value
                 
                 if level.dragonsOffset != 0:
-                    ReadProcessMemory(hProcess, ctypes.cast(RAMAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                    ReadProcessMemory(hProcess, ctypes.cast(mapViewBaseAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                     level.dragonsTotal = value.value
                 
                 if level.eggsOffset != 0:
-                    ReadProcessMemory(hProcess, ctypes.cast(RAMAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                    ReadProcessMemory(hProcess, ctypes.cast(mapViewBaseAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                     level.eggsTotal = value.value
             logger.info("Player in game")
             break
@@ -1349,15 +1328,19 @@ async def GetInitialValues(hProcess, RAMAddress):
 
 async def mainloop(ctx: CommonContext):
     gnastyDefeated = False
-    deathlink = False
+    
+    if ctx.slot_data["deathlink"] == True:
+        await ctx.update_death_link(True)
+        
+    if not ctx.slot_data["include_gnastys_loot"]:
+        del levels[64]
+        del levels[60].connectedLevelIDs[3]
+        del levels[60].connectedLevelIDOffsets[3]
+    
     
     while True:
-        if ctx.slot_data["deathlink"] == True and deathlink == False:
-            deathlink = True
-            await ctx.update_death_link(True)
-        
         if ctx.slot_data["portal_locks"] == True:
-            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + currentLevelIDOffset, wintypes.LPVOID), ctypes.byref(currentLevelID), ctypes.sizeof(currentLevelID), None)
+            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + currentLevelIDOffset, wintypes.LPVOID), ctypes.byref(currentLevelID), ctypes.sizeof(currentLevelID), None)
             level = levels[currentLevelID.value]
             if level.isHub:
                 for connectedLevelID in level.connectedLevelIDs:
@@ -1369,7 +1352,17 @@ async def mainloop(ctx: CommonContext):
                             break
                     else:
                         byte = ctypes.c_byte(0)
-                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + connectedLevelIDOffset - 4, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + connectedLevelIDOffset - 4, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                    
+                if level.internalID == 60:
+                     if level.dragonsTotal >= 1:
+                        byte = ctypes.c_byte(1)
+                        for offset in dragonHeadChecksGnorcGnexus:
+                            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + offset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                        
+                        if ctx.slot_data["include_gnastys_loot"]:
+                            GnastysLootJump = wintypes.DWORD(0x0802062e)
+                            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + 0x8187C, wintypes.LPVOID), ctypes.byref(GnastysLootJump), ctypes.sizeof(GnastysLootJump), None)
             
             for level in levels:
                 level = levels[level]
@@ -1381,60 +1374,68 @@ async def mainloop(ctx: CommonContext):
                             break
                     else:
                         name = ctypes.create_string_buffer(b'LOCKED')
-                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.nameOffset, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
+                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.nameOffset, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
+            
+            for offset in dragonHeadChecksArtisans:
+                WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + offset, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
         
         #Writing to the gem, dragon and egg totals with the current amount of each received
-        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + totalGemsOffset, wintypes.LPVOID), ctypes.byref(totalGems), ctypes.sizeof(totalGems), None)
+        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalGemsOffset, wintypes.LPVOID), ctypes.byref(totalGems), ctypes.sizeof(totalGems), None)
         
-        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + totalDragonsOffset, wintypes.LPVOID), ctypes.byref(totalDragons), ctypes.sizeof(totalDragons), None)
+        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalDragonsOffset, wintypes.LPVOID), ctypes.byref(totalDragons), ctypes.sizeof(totalDragons), None)
         
-        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + totalEggsOffset, wintypes.LPVOID), ctypes.byref(totalEggs), ctypes.sizeof(totalEggs), None)
+        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalEggsOffset, wintypes.LPVOID), ctypes.byref(totalEggs), ctypes.sizeof(totalEggs), None)
+        
         
         for level in levels:
             level = levels[level]
-            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+            #Checking for any updates from the gems addresses for each level
+            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
             if value.value >= level.gemsTotal + 100:
                 level.gemsTotal += 100
                 location = f"{level.name.title()}: {level.gemsTotal} Gems"
                 await ctx.check_locations([(locations.index(location) + 1)])
-                
+            
+            #Checking for any updates from the dragon addresses for each level
             if level.dragonsOffset != 0:
-                ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                 if value.value > level.dragonsTotal:
-#                     print("Found a Dragon")
                     level.dragonsTotal += 1
+                    #Extracting the dragon name, in a similar way to spyro 
                     stringptr = wintypes.LPVOID()
-                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + 0x770C0, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
-                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + stringptr.value - 0x80000000, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
-                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + stringptr.value + 0x38 - 0x80000000, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
-                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + stringptr.value * 4 + 0x70000 - 0x96C, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
+                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + 0x770C0, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
+                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + stringptr.value - 0x80000000, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
+                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + stringptr.value + 0x38 - 0x80000000, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
+                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + stringptr.value * 4 + 0x70000 - 0x96C, wintypes.LPVOID), ctypes.byref(stringptr), ctypes.sizeof(ctypes.c_int), None)
                     stringptr = ctypes.cast(stringptr.value - 0x80000000, wintypes.LPVOID)
                     char = ctypes.c_char()
                     length = 0
                     while True:
-                        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + stringptr.value + length, wintypes.LPVOID), ctypes.byref(char), ctypes.sizeof(char), None)
+                        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + stringptr.value + length, wintypes.LPVOID), ctypes.byref(char), ctypes.sizeof(char), None)
                         if char.value == b'\x00':
                             break
                         length += 1
                     name = ctypes.create_string_buffer(length)
-                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + stringptr.value, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
+                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + stringptr.value, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
                     location = f"{level.name.title()}: {name.value.decode('utf-8').title()}"
                     await ctx.check_locations([(locations.index(location) + 1)])
-                
+            
+            #Checking for any updates from the egg addresses for each level
             if level.eggsOffset != 0: 
-                ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                 if value.value > level.eggsTotal:
                     level.eggsTotal += 1
                     location = f"{level.name.title()}: Egg #{level.eggsTotal}"
                     await ctx.check_locations([(locations.index(location) + 1)])
-            
-            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                    
+            #Checking if the gem, dragon and egg totals are at max or if they valid.
+            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
             if value.value == level.gemsMax and not level.complete:
                 if level.dragonsOffset != 0:
-                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                    ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                     if value.value == level.dragonsMax:
                         if level.eggsOffset != 0:
-                            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
+                            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
                             if value.value == level.eggsMax:
                                 location = f"{level.name.title()}: 100% Complete"
                                 await ctx.check_locations([(locations.index(location) + 1)])
@@ -1447,13 +1448,15 @@ async def mainloop(ctx: CommonContext):
                     location = f"{level.name.title()}: 100% Complete"
                     await ctx.check_locations([(locations.index(location) + 1)])
                     level.complete = True
-            
-        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + gnastyAnimationOffset, wintypes.LPVOID), ctypes.byref(gnastyAnimation), ctypes.sizeof(gnastyAnimation), None)
+        
+        #Checking Gnasty's animation address to see if it has a value of 8, which is the animation for him being defeated
+        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + gnastyAnimationOffset, wintypes.LPVOID), ctypes.byref(gnastyAnimation), ctypes.sizeof(gnastyAnimation), None)
         if gnastyAnimation.value == 8 and gnastyDefeated == False:
             gnastyDefeated = True
             await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
         
-        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.RAMAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
+        #Checking the current game state to it has a value of 4, which is the value for dying
+        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
         if currentGameState.value == 4 and deathlink == True and ctx.last_death_link < time.time() - 1:
             await ctx.send_death("Spyro meet a tragic fate")
 
@@ -1467,7 +1470,7 @@ def run_as_spyroclient(*args):
         items_handling = 0b111
         want_slot_data = True
         hProcess: wintypes.HANDLE = None
-        RAMAddress: wintypes.LPVOID = None
+        mapViewBaseAddress: wintypes.LPVOID = None
         
         async def server_auth(self, password_requested: bool = False):
             if password_requested and not self.password:
@@ -1480,12 +1483,12 @@ def run_as_spyroclient(*args):
 
                     lpName = f'duckstation_{pid.value}'
 
-                    self.RAMAddress = GetRAMAddress(lpName)
+                    self.mapViewBaseAddress = GetMapViewBaseAddress(lpName)
                     
                     self.hProcess = GetCurrentProcess()
                     
                     flag = ctypes.c_ubyte()
-                    ReadProcessMemory(self.hProcess, ctypes.cast(self.RAMAddress.value + 0x7581C, wintypes.LPVOID), ctypes.byref(flag), ctypes.sizeof(flag), None)
+                    ReadProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + 0x7581C, wintypes.LPVOID), ctypes.byref(flag), ctypes.sizeof(flag), None)
                     
                     if flag.value != 176:
                         raise Exception
@@ -1494,19 +1497,11 @@ def run_as_spyroclient(*args):
                 
                 except Exception as e:
                     await asyncio.sleep(5)
-                    
-            await GetInitialValues(self.hProcess, self.RAMAddress)
-            
-            self.mainloop = asyncio.create_task(mainloop(self), name="mainloop")
             
             await self.send_connect(game="Spyro the Dragon")
         
         
         async def disconnect(self, allow_autoreconnect: bool = False):
-            try:
-                self.mainloop.cancel()
-            except:
-                pass
             await super().disconnect(allow_autoreconnect)
             
     
@@ -1595,3 +1590,4 @@ def launch_client():
 if __name__ == '__main__':
     logging.getLogger().setLevel(logging.INFO)  # force log-level to work around log level resetting to WARNING
     run_as_textclient(*sys.argv[1:])  # default value for parse_args
+

@@ -46,6 +46,7 @@ def create_all_regions(world: SpyroWorld) -> None:
     Gnorc_Cove = Region("Gnorc Cove", world.player, world.multiworld)
     Twilight_Harbor = Region("Twilight Harbor", world.player, world.multiworld)
     Gnasty_Gnorc = Region("Gnasty Gnorc", world.player, world.multiworld)
+    Gnastys_Loot = Region("Gnastys Loot", world.player, world.multiworld)
     
     regions = [
         Artisans,
@@ -81,7 +82,8 @@ def create_all_regions(world: SpyroWorld) -> None:
         Gnorc_Gnexus,
         Gnorc_Cove,
         Twilight_Harbor,
-        Gnasty_Gnorc
+        Gnasty_Gnorc,
+        Gnastys_Loot
         ]
     
     world.multiworld.regions += regions
@@ -121,6 +123,7 @@ def connect_regions(world: SpyroWorld) -> None:
     Gnorc_Cove = world.get_region("Gnorc Cove")
     Twilight_Harbor = world.get_region("Twilight Harbor")
     Gnasty_Gnorc = world.get_region("Gnasty Gnorc")
+    Gnastys_Loot = world.get_region("Gnastys Loot")
     
     Artisans.connect(Stone_Hill, "Artisans to Stone Hill")
     Artisans.connect(Dark_Hollow, "Artisans to Dark Hollow")
@@ -155,3 +158,4 @@ def connect_regions(world: SpyroWorld) -> None:
     Gnorc_Gnexus.connect(Gnorc_Cove, "Gnorc Gnexus to Gnorc Cove")
     Gnorc_Gnexus.connect(Twilight_Harbor, "Gnorc Gnexus to Twilight Harbor")
     Gnorc_Gnexus.connect(Gnasty_Gnorc, "Gnorc Gnexus to Gnasty Gnorc")
+    Gnorc_Gnexus.connect(Gnastys_Loot, "Gnorc Gnexus to Gnastys Loot")

@@ -40,9 +40,10 @@ Currently the only goal is to defeat Gnasty Gnorc but I am planning to add more 
 
 1. Move Spyro the Dragon.cue/bin into Duckstation games folder
 2. Open Duckstaion and go to Settings/Advanced and enable Show Debug Menu
-3. In Duckstation and go to Settings/Debugging and enable Export Shared Memory
-4. Start Spyro the Dragon and load into a new save
-5. Open the Archipelago Launcher and open the Spyro Client
-6. Connect to server by inputting Archipelgo server address
-7. Input password if required and input slot name
-8. Enjoy playing
+3. In Duckstation go to settings/Console and set Execution Mode to Interpreter
+4. In Duckstation go to Settings/Debugging and enable Export Shared Memory
+5. Start Spyro the Dragon and load into a new save
+6. Open the Archipelago Launcher and open the Spyro Client
+7. Connect to server by inputting Archipelgo server address
+8. Input password if required and input slot name
+9. Enjoy playing

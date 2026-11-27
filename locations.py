@@ -278,6 +278,48 @@ LOCATION_NAME_TO_ID = {
     "Gnastys Loot: 1900 Gems": 266,
     "Gnastys Loot: 2000 Gems": 267,
     "Gnastys Loot: 100% Complete": 268,
+    "Artisans: life chest near Dark Hollow portal": 269,
+    "Stone Hill: life chest near vortex": 270,
+    "Dark Hollow: life chest glide after staircase": 271,
+    "Town Square: life chest near Devlin": 272,
+    "Peace Keppers: life chest behind balloonist": 273,
+    "Dry Canyon: life chest near vortex": 274,
+    "Dry Canyon: life chest near Ivor": 275,
+    "Cliff Town: life chest under double bridge": 276,
+    "Ice Cavern: life chest group of 3 #2": 277,
+    "Ice Cavern: life chest group of 3 #1": 278,
+    "Ice Cavern: life chest group of 3 #3": 279,
+    "Ice Cavern: life chest near Andor": 280,
+    "Ice Cavern: life chest near vortex": 281,
+    "Magic Crafters: life chest glide from High Caves portal": 282,
+    "Alpine Ridge: life chest in cave near vortex": 283,
+    "Wizard Peak: life chest top of first supercharge ramp": 284,
+    "Beast Makers: life chest below Metalhead portal": 285,
+    "Terrace Village: life chest near Cyprin": 286,
+    "Terrace Village: life chest near Claude": 287,
+    "Misty Bog: life chest near start behind wall": 288,
+    "Misty Bog: life chest near start": 289,
+    "Tree Tops: life chest before Lyle": 290,
+    "Tree Tops: life chest after Issak": 291,
+    "Tree Tops: life chest before vortex": 292,
+    "Tree Tops: life chest after Lyle": 293,
+    "Metalhead: life chest in sewers": 294,
+    "Metalhead: life chest above start": 295,
+    "Dream Weavers: life chest near Mazi": 296,
+    "Dream Weavers: life chest near Icy Flight portal": 297,
+    "Dark Passage: life chest near vortex": 298,
+    "Dark Passage: life chest near Apara": 299,
+    "Lofty Castle: life chest near Mudada": 300,
+    "Lofty Castle: life chest near Useni": 301,
+    "Haunted Towers: life chest near second fire fairy": 302,
+    "Haunted Towers: life chest near Lutalo": 303,
+    "Jacques: life chest near Unika": 304,
+    "Jacques: life chest near Revilo": 305,
+    "Gnorc Cove: life chest near Lateef": 306,
+    "Gnorc Cove: life chest near Tomas": 307,
+    "Twilight Harbor: life chest near start": 308,
+    "Twilight Harbor: life chest top of supercharge ramp": 309,
+    "Twilight Harbor: life chest after supercharge jump": 310
     }
 
 class SpyroLocation(Location):
@@ -736,6 +778,118 @@ def create_regular_locations(world: SpyroWorld) -> None:
             "Gnastys Loot: 100% Complete"
             ])
         Gnastys_Loot.add_locations(Gnastys_Loot_Locations, SpyroLocation)
+    
+    if world.options.life_chest_checks:
+        Artisans.add_locations(get_location_names_with_ids([
+            "Artisans: life chest near Dark Hollow portal"
+            ]), SpyroLocation)
+        
+        Stone_Hill.add_locations(get_location_names_with_ids([
+            "Stone Hill: life chest near vortex"
+            ]), SpyroLocation)
+        
+        Dark_Hollow.add_locations(get_location_names_with_ids([
+            "Dark Hollow: life chest glide after staircase"
+            ]), SpyroLocation)
+        
+        Town_Square.add_locations(get_location_names_with_ids([
+            "Town Square: life chest near Devlin"
+            ]), SpyroLocation)
+        
+        Peace_Keepers.add_locations(get_location_names_with_ids([
+            "Peace Keppers: life chest behind balloonist"
+            ]), SpyroLocation)
+        
+        Dry_Canyon.add_locations(get_location_names_with_ids([
+            "Dry Canyon: life chest near vortex",
+            "Dry Canyon: life chest near Ivor"
+            ]), SpyroLocation)
+        
+        Cliff_Town.add_locations(get_location_names_with_ids([
+            "Cliff Town: life chest under double bridge"
+            ]), SpyroLocation)
+        
+        Ice_Cavern.add_locations(get_location_names_with_ids([
+            "Ice Cavern: life chest group of 3 #2",
+            "Ice Cavern: life chest group of 3 #1",
+            "Ice Cavern: life chest group of 3 #3",
+            "Ice Cavern: life chest near Andor",
+            "Ice Cavern: life chest near vortex"
+            ]), SpyroLocation)
+        
+        Magic_Crafters.add_locations(get_location_names_with_ids([
+            "Magic Crafters: life chest glide from High Caves portal"
+            ]), SpyroLocation)
+        
+        Alpine_Ridge.add_locations(get_location_names_with_ids([
+            "Alpine Ridge: life chest in cave near vortex"
+            ]), SpyroLocation)
+        
+        Wizard_Peak.add_locations(get_location_names_with_ids([
+            "Wizard Peak: life chest top of first supercharge ramp"
+            ]), SpyroLocation)
+        
+        Beast_Makers.add_locations(get_location_names_with_ids([
+            "Beast Makers: life chest below Metalhead portal"
+            ]), SpyroLocation)
+        
+        Terrace_Village.add_locations(get_location_names_with_ids([
+            "Terrace Village: life chest near Cyprin",
+            "Terrace Village: life chest near Claude"
+            ]), SpyroLocation)
+        
+        Misty_Bog.add_locations(get_location_names_with_ids([
+            "Misty Bog: life chest near start behind wall",
+            "Misty Bog: life chest near start"
+            ]), SpyroLocation)
+        
+        Tree_Tops.add_locations(get_location_names_with_ids([
+            "Tree Tops: life chest before Lyle",
+            "Tree Tops: life chest after Issak",
+            "Tree Tops: life chest before vortex",
+            "Tree Tops: life chest after Lyle"
+            ]), SpyroLocation)
+        
+        Metalhead.add_locations(get_location_names_with_ids([
+            "Metalhead: life chest in sewers",
+            "Metalhead: life chest above start"
+            ]), SpyroLocation)
+        
+        Dream_Weavers.add_locations(get_location_names_with_ids([
+            "Dream Weavers: life chest near Mazi",
+            "Dream Weavers: life chest near Icy Flight portal"
+            ]), SpyroLocation)
+        
+        Dark_Passage.add_locations(get_location_names_with_ids([
+            "Dark Passage: life chest near vortex",
+            "Dark Passage: life chest near Apara"
+            ]), SpyroLocation)
+        
+        Lofty_Castle.add_locations(get_location_names_with_ids([
+            "Lofty Castle: life chest near Mudada",
+            "Lofty Castle: life chest near Useni"
+            ]), SpyroLocation)
+        
+        Haunted_Towers.add_locations(get_location_names_with_ids([
+            "Haunted Towers: life chest near second fire fairy",
+            "Haunted Towers: life chest near Lutalo"
+            ]), SpyroLocation)
+        
+        Jacques.add_locations(get_location_names_with_ids([
+            "Jacques: life chest near Unika",
+            "Jacques: life chest near Revilo"
+            ]), SpyroLocation)
+        
+        Gnorc_Cove.add_locations(get_location_names_with_ids([
+            "Gnorc Cove: life chest near Lateef",
+            "Gnorc Cove: life chest near Tomas"
+            ]), SpyroLocation)
+        
+        Twilight_Harbor.add_locations(get_location_names_with_ids([
+            "Twilight Harbor: life chest near start",
+            "Twilight Harbor: life chest top of supercharge ramp",
+            "Twilight Harbor: life chest after supercharge jump"
+            ]), SpyroLocation)
     
 def create_events(world: SpyroWorld) -> None:
     Gnasty_Gnorc = world.get_region("Gnasty Gnorc")

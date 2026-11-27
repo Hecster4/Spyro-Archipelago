@@ -29,6 +29,10 @@ totalEggsOffset = 0x75810
 gnastyAnimationOffset = 0x160f08
 currentLevelIDOffset = 0x7596c
 currentGameStateOffset = 0x757d8
+gameLoadedFlagOffset = 0x7581C
+spyroStateOffset = 0x78AD0
+spyroHealthOffset = 0x78BBC
+enteredLevelStruct = 0x78E78
 value = ctypes.c_int()
 totalGems = ctypes.c_int()
 totalDragons = ctypes.c_int()
@@ -781,7 +785,7 @@ class CommonContext:
 
     # DeathLink hooks
 
-    def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
+    async def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
         """Gets dispatched when a new DeathLink is triggered by another linked player."""
         self.last_death_link = max(data["time"], self.last_death_link)
         text = data.get("cause", "")
@@ -789,13 +793,7 @@ class CommonContext:
             logger.info(f"DeathLink: {text}")
         else:
             logger.info(f"DeathLink: Received from {data['source']}")
-        
-        ReadProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
-        if value.value != 0:
-            value.value -= 1
-        WriteProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
-        byte = ctypes.c_byte(4)
-        WriteProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+            
 
     async def send_death(self, death_text: str = ""):
         """Helper function to send a deathlink using death_text as the unique death cause string."""
@@ -1075,7 +1073,7 @@ async def process_server_cmd(ctx: CommonContext, args: dict):
         
         await GetInitialValues(ctx.hProcess, ctx.mapViewBaseAddress)
             
-        run_mainloop = asyncio.create_task(mainloop(ctx), name="mainloop")
+        ctx.mainloop = asyncio.create_task(mainloop(ctx), name="mainloop")
         
         # on a switch to a different session, clear session state before stale checks/goal are replayed below
         identity = (ctx.server_seed_name, ctx.team, ctx.slot)
@@ -1188,7 +1186,7 @@ async def process_server_cmd(ctx: CommonContext, args: dict):
             data = args.get("data", {})
             time = data.get("time")
             if time is not None and ctx.last_death_link != time:
-                ctx.on_deathlink(args["data"])
+                await ctx.on_deathlink(args["data"])
 
     elif cmd == "Retrieved":
         ctx.stored_data.update(args["keys"])
@@ -1305,7 +1303,7 @@ async def GetInitialValues(hProcess, mapViewBaseAddress):
     logger.info("Waiting for player to be in game")
     while True:
         ReadProcessMemory(hProcess, ctypes.cast(mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
-        if currentGameState.value != 13:
+        if currentGameState.value == 0:
             for level in levels:
                 level = levels[level]
                 ReadProcessMemory(hProcess, ctypes.cast(mapViewBaseAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
@@ -1327,75 +1325,65 @@ async def GetInitialValues(hProcess, mapViewBaseAddress):
 
 
 async def mainloop(ctx: CommonContext):
-    gnastyDefeated = False
-    
-    if ctx.slot_data["deathlink"] == True:
-        await ctx.update_death_link(True)
+    try:
+        gnastyDefeated = False
         
-    if not ctx.slot_data["include_gnastys_loot"]:
-        del levels[64]
-        del levels[60].connectedLevelIDs[3]
-        del levels[60].connectedLevelIDOffsets[3]
+        if ctx.slot_data["deathlink"]:
+            await ctx.update_death_link(True)
+            
+        if not ctx.slot_data["include_gnastys_loot"]:
+            del levels[64]
+            del levels[60].connectedLevelIDs[3]
+            del levels[60].connectedLevelIDOffsets[3]
     
     
-    while True:
-        if ctx.slot_data["portal_locks"] == True:
+        while True:
             ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + currentLevelIDOffset, wintypes.LPVOID), ctypes.byref(currentLevelID), ctypes.sizeof(currentLevelID), None)
             level = levels[currentLevelID.value]
-            if level.isHub:
-                for connectedLevelID in level.connectedLevelIDs:
-                    connectedLevelIDOffset = level.connectedLevelIDOffsets[level.connectedLevelIDs.index(connectedLevelID)]
-                    #Locking or unlocking portal based on what portals have been unlocked
-                    for network_item in ctx.items_received:
-                        if connectedLevelID == network_item.item:
-                            byte = ctypes.c_byte(6)
-                            break
-                    else:
-                        byte = ctypes.c_byte(0)
-                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + connectedLevelIDOffset - 4, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
-                    
-                if level.internalID == 60:
-                     if level.dragonsTotal >= 1:
-                        byte = ctypes.c_byte(1)
-                        for offset in dragonHeadChecksGnorcGnexus:
-                            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + offset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+            if ctx.slot_data["portal_locks"] == True:
+                if level.isHub:
+                    for connectedLevelID in level.connectedLevelIDs:
+                        connectedLevelIDOffset = level.connectedLevelIDOffsets[level.connectedLevelIDs.index(connectedLevelID)]
+                        #Locking or unlocking portal based on what portals have been unlocked
+                        for network_item in ctx.items_received:
+                            if connectedLevelID == network_item.item:
+                                byte = ctypes.c_byte(6)
+                                break
+                        else:
+                            byte = ctypes.c_byte(0)
                         
-                        if ctx.slot_data["include_gnastys_loot"]:
-                            GnastysLootJump = wintypes.DWORD(0x0802062e)
-                            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + 0x8187C, wintypes.LPVOID), ctypes.byref(GnastysLootJump), ctypes.sizeof(GnastysLootJump), None)
+                        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + connectedLevelIDOffset - 4, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                        
+                        
+                        
+                    if level.internalID == 60:
+                         if level.dragonsTotal >= 1:
+                            byte = ctypes.c_byte(1)
+                            for offset in dragonHeadChecksGnorcGnexus:
+                                WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + offset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                            
+                            if ctx.slot_data["include_gnastys_loot"]:
+                                GnastysLootJump = wintypes.DWORD(0x0802062e)
+                                WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + 0x8187C, wintypes.LPVOID), ctypes.byref(GnastysLootJump), ctypes.sizeof(GnastysLootJump), None)
+                
+                byte = ctypes.c_byte(1)
+                for offset in dragonHeadChecksArtisans:
+                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + offset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
             
-            for level in levels:
-                level = levels[level]
-                if not level.isHub:
-                    #Changing the name of level based on if it have been unlocked
-                    for network_item in ctx.items_received: 
-                        if level.internalID == network_item.item:
-                            name = ctypes.create_string_buffer(level.name.encode("utf-8"))
-                            break
-                    else:
-                        name = ctypes.create_string_buffer(b'LOCKED')
-                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.nameOffset, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
+            #Writing to the gem, dragon and egg totals with the current amount of each received
+            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalGemsOffset, wintypes.LPVOID), ctypes.byref(totalGems), ctypes.sizeof(totalGems), None)
             
-            for offset in dragonHeadChecksArtisans:
-                WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + offset, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
-        
-        #Writing to the gem, dragon and egg totals with the current amount of each received
-        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalGemsOffset, wintypes.LPVOID), ctypes.byref(totalGems), ctypes.sizeof(totalGems), None)
-        
-        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalDragonsOffset, wintypes.LPVOID), ctypes.byref(totalDragons), ctypes.sizeof(totalDragons), None)
-        
-        WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalEggsOffset, wintypes.LPVOID), ctypes.byref(totalEggs), ctypes.sizeof(totalEggs), None)
-        
-        
-        for level in levels:
-            level = levels[level]
+            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalDragonsOffset, wintypes.LPVOID), ctypes.byref(totalDragons), ctypes.sizeof(totalDragons), None)
+            
+            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalEggsOffset, wintypes.LPVOID), ctypes.byref(totalEggs), ctypes.sizeof(totalEggs), None)
+            
             #Checking for any updates from the gems addresses for each level
             ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
             if value.value >= level.gemsTotal + 100:
                 level.gemsTotal += 100
                 location = f"{level.name.title()}: {level.gemsTotal} Gems"
                 await ctx.check_locations([(locations.index(location) + 1)])
-            
+                
             #Checking for any updates from the dragon addresses for each level
             if level.dragonsOffset != 0:
                 ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.dragonsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
@@ -1419,7 +1407,7 @@ async def mainloop(ctx: CommonContext):
                     ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + stringptr.value, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
                     location = f"{level.name.title()}: {name.value.decode('utf-8').title()}"
                     await ctx.check_locations([(locations.index(location) + 1)])
-            
+                
             #Checking for any updates from the egg addresses for each level
             if level.eggsOffset != 0: 
                 ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.eggsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
@@ -1427,7 +1415,7 @@ async def mainloop(ctx: CommonContext):
                     level.eggsTotal += 1
                     location = f"{level.name.title()}: Egg #{level.eggsTotal}"
                     await ctx.check_locations([(locations.index(location) + 1)])
-                    
+                        
             #Checking if the gem, dragon and egg totals are at max or if they valid.
             ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.gemsOffset, wintypes.LPVOID), ctypes.byref(value), ctypes.sizeof(value), None)
             if value.value == level.gemsMax and not level.complete:
@@ -1448,20 +1436,67 @@ async def mainloop(ctx: CommonContext):
                     location = f"{level.name.title()}: 100% Complete"
                     await ctx.check_locations([(locations.index(location) + 1)])
                     level.complete = True
+                    
+            if ctx.slot_data["life_chest_checks"]:
+                byte = ctypes.c_byte()
+                for life_chest in level.life_chests:
+                    if not life_chest.checked:
+                        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + life_chest.offset, wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                        if byte.value & life_chest.bit:
+                            life_chest.checked = True
+                            await ctx.check_locations([(locations.index(life_chest.name) + 1)])
+                            c_int = ctypes.c_int()
+                            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(c_int), ctypes.sizeof(c_int), None)
+                            c_int.value -= 1
+                            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + totalLivesOffset, wintypes.LPVOID), ctypes.byref(c_int), ctypes.sizeof(c_int), None)
+                    
+            for level in levels:
+                level = levels[level]
+                if not level.isHub:
+                    #Changing the name of level based on if it have been unlocked
+                    for network_item in ctx.items_received: 
+                        if level.internalID == network_item.item:
+                            keys = list(levels.keys())
+                            byte = ctypes.c_byte(1)
+                            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + enteredLevelStruct + keys.index(level.internalID), wintypes.LPVOID), ctypes.byref(byte), ctypes.sizeof(byte), None)
+                            
+                            name = ctypes.create_string_buffer(level.name.encode("utf-8"))
+                            break
+                    else:
+                        name = ctypes.create_string_buffer(b'LOCKED')
+                    WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + level.nameOffset, wintypes.LPVOID), ctypes.byref(name), ctypes.sizeof(name), None)
+            
+            #Checking Gnasty's animation address to see if it has a value of 8, which is the animation for him being defeated
+            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + gnastyAnimationOffset, wintypes.LPVOID), ctypes.byref(gnastyAnimation), ctypes.sizeof(gnastyAnimation), None)
+            if gnastyAnimation.value == 8 and gnastyDefeated == False:
+                gnastyDefeated = True
+                await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
+            
+            #Checking the current game state to it has a value of 4, which is the value for dying
+            ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
+            if currentGameState.value == 4 and ctx.slot_data["deathlink"] and ctx.last_death_link < time.time() - 1:
+                await ctx.send_death("Spyro meet a tragic fate")
+
+            await asyncio.sleep(0.033)
         
-        #Checking Gnasty's animation address to see if it has a value of 8, which is the animation for him being defeated
-        ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + gnastyAnimationOffset, wintypes.LPVOID), ctypes.byref(gnastyAnimation), ctypes.sizeof(gnastyAnimation), None)
-        if gnastyAnimation.value == 8 and gnastyDefeated == False:
-            gnastyDefeated = True
-            await ctx.send_msgs([{"cmd": "StatusUpdate", "status": 30}])
+    except Exception as e:
+        logger.info(f"{e} Please restart client")
+            
         
-        #Checking the current game state to it has a value of 4, which is the value for dying
+async def kill_spyro(ctx: CommonContext):
+    while True:
         ReadProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + currentGameStateOffset, wintypes.LPVOID), ctypes.byref(currentGameState), ctypes.sizeof(currentGameState), None)
-        if currentGameState.value == 4 and ctx.slot_data["deathlink"] and ctx.last_death_link < time.time() - 1:
-            await ctx.send_death("Spyro meet a tragic fate")
-
-        await asyncio.sleep(0.033)
-
+        if currentGameState.value == 0:
+            c_int = ctypes.c_int(0x1E)
+            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + spyroStateOffset, wintypes.LPVOID), ctypes.byref(c_int), ctypes.sizeof(c_int), None)
+            time.sleep(1)
+            c_int = ctypes.c_int(-1)
+            WriteProcessMemory(ctx.hProcess, ctypes.cast(ctx.mapViewBaseAddress.value + spyroHealthOffset, wintypes.LPVOID), ctypes.byref(c_int), ctypes.sizeof(c_int), None)
+            ctx.last_death_link = time.time()
+            break
+        await asyncio.sleep(0)
+            
+    
 
 def run_as_spyroclient(*args):
     class SpyroContext(CommonContext):
@@ -1487,10 +1522,10 @@ def run_as_spyroclient(*args):
                     
                     self.hProcess = GetCurrentProcess()
                     
-                    flag = ctypes.c_ubyte()
-                    ReadProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + 0x7581C, wintypes.LPVOID), ctypes.byref(flag), ctypes.sizeof(flag), None)
+                    gameLoadedFlag = ctypes.c_uint()
+                    ReadProcessMemory(self.hProcess, ctypes.cast(self.mapViewBaseAddress.value + gameLoadedFlagOffset, wintypes.LPVOID), ctypes.byref(gameLoadedFlag), ctypes.sizeof(gameLoadedFlag), None)
                     
-                    if flag.value != 176:
+                    if gameLoadedFlag.value != 0x801BFBB0:
                         raise Exception
                     logger.info("Connected to Spyro")
                     break
@@ -1498,8 +1533,11 @@ def run_as_spyroclient(*args):
                 except Exception as e:
                     await asyncio.sleep(5)
             
-            await self.send_connect(game="Spyro the Dragon")
-        
+            await self.send_connect(game="Spyro the Dragon (DuckStation)")
+            
+        async def on_deathlink(self, data: typing.Dict[str, typing.Any]) -> None:
+            super().on_deathlink(data)
+            asyncio.create_task(kill_spyro(self))
         
         async def disconnect(self, allow_autoreconnect: bool = False):
             await super().disconnect(allow_autoreconnect)

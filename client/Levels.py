@@ -1,3 +1,15 @@
+class LifeChest():
+    name: str
+    offset: int
+    byte: int
+    checked: bool = False
+    
+    def __init__(self, name, offset, bit):
+        self.name = name
+        self.offset = offset
+        self.bit = bit
+        
+
 class Level():
     name: str
     internelID: int
@@ -5,16 +17,17 @@ class Level():
     complete: bool = False
     nameOffset: int
     gemsOffset: int
-    gemsTotal: int
+    gemsTotal: int = 0
     gemsMax: int
     dragonsOffset: int
     dragonsMax: int
-    dragonsTotal: int
+    dragonsTotal: int = 0
     eggsOffset: int
     eggsMax: int
-    eggsTotal: int
+    eggsTotal: int = 0
     connectedLevelIDs: list[int] = []
     connectedLevelIDOffsets : list[int] = []
+    life_chests: list[LifeChest] = []
     
     def __init__(self, name, internalID, nameOffset, gemsOffset, gemsMax, dragonsOffset = 0, dragonsMax = 0, eggsOffset = 0, eggsMax = 0):
         self.name = name
@@ -26,9 +39,7 @@ class Level():
         self.dragonsMax = dragonsMax
         self.eggsOffset = eggsOffset
         self.eggsMax = eggsMax
-        self.gemsTotal = 0
-        self.dragonsTotal = 0
-        self.eggsTotal = 0
+        
         
 levels: dict = {}
 
@@ -90,3 +101,53 @@ for level in levels:
         else:
             level.connectedLevelIDs = [61, 62, 63, 64]
             level.connectedLevelIDOffsets = [0xa69d8, 0xa69b4, 0xa69c0, 0xa69cc]
+            
+levels[10].life_chests = [LifeChest("Artisans: life chest near Dark Hollow portal", 0x77913, 0x40)]
+levels[11].life_chests = [LifeChest("Stone Hill: life chest near vortex", 0x7793D, 0x40)]
+levels[12].life_chests = [LifeChest("Dark Hollow: life chest glide after staircase", 0x77956, 0x10)]
+levels[13].life_chests = [LifeChest("Town Square: life chest near Devlin", 0x77975, 0x04)]
+levels[20].life_chests = [LifeChest("Peace Keppers: life chest behind balloonist", 0x779D3, 0x04)]
+levels[21].life_chests = [LifeChest("Dry Canyon: life chest near vortex", 0x779FA, 0x04),
+                          LifeChest("Dry Canyon: life chest near Ivor",0x779FE, 0x01)]
+levels[22].life_chests = [LifeChest("Cliff Town: life chest under double bridge", 0x77A1A, 0x08)]
+levels[23].life_chests = [LifeChest("Ice Cavern: life chest group of 3 #2", 0x77A3E, 0x10),
+                          LifeChest("Ice Cavern: life chest group of 3 #1", 0x77A3F, 0x04),
+                          LifeChest("Ice Cavern: life chest group of 3 #3", 0x77A3F, 0x08),
+                          LifeChest("Ice Cavern: life chest near Andor", 0x77A41, 0x20),
+                          LifeChest("Ice Cavern: life chest near vortex", 0x77A41, 0x40)]
+levels[30].life_chests = [LifeChest("Magic Crafters: life chest glide from High Caves portal", 0x77A8E, 0x40)]
+levels[31].life_chests = [LifeChest("Alpine Ridge: life chest in cave near vortex", 0x77ABB, 0x04)]
+levels[33].life_chests = [LifeChest("Wizard Peak: life chest top of first supercharge ramp", 0x77AFA, 0x80)]
+levels[40].life_chests = [LifeChest("Beast Makers: life chest below Metalhead portal", 0x77B5B, 0x01)]
+levels[41].life_chests = [LifeChest("Terrace Village: life chest near Cyprin", 0x77B6F, 0x20),
+                          LifeChest("Terrace Village: life chest near Claude", 0x77B7C, 0x02)]
+levels[42].life_chests = [LifeChest("Misty Bog: life chest near start behind wall", 0x77B94, 0x40),
+                          LifeChest("Misty Bog: life chest near start", 0x77B94, 0x80)]
+levels[43].life_chests = [LifeChest("Tree Tops: life chest before Lyle", 0x77BB5, 0x02),
+                          LifeChest("Tree Tops: life chest after Issak", 0x77BBD, 0x40),
+                          LifeChest("Tree Tops: life chest before vortex", 0x77BBE, 0x01),
+                          LifeChest("Tree Tops: life chest after Lyle", 0x77BBE, 0x02)]
+levels[44].life_chests = [LifeChest("Metalhead: life chest in sewers", 0x77BD8, 0x80),
+                          LifeChest("Metalhead: life chest above start", 0x77BE0, 0x02)]
+levels[50].life_chests = [LifeChest("Dream Weavers: life chest near Mazi", 0x77C18, 0x80),
+                          LifeChest("Dream Weavers: life chest near Icy Flight portal", 0x77C19, 0x08)]
+levels[51].life_chests = [LifeChest("Dark Passage: life chest near vortex", 0x77C34, 0x04),
+                          LifeChest("Dark Passage: life chest near Apara", 0x77C36, 0x20)]
+levels[52].life_chests = [LifeChest("Lofty Castle: life chest near Mudada", 0x77C5E, 0x02),
+                          LifeChest("Lofty Castle: life chest near Useni",0x77C60, 0x10)]
+levels[53].life_chests = [LifeChest("Haunted Towers: life chest near second fire fairy", 0x77C7C, 0x01),
+                          LifeChest("Haunted Towers: life chest near Lutalo", 0x77C7C, 0x02)]
+levels[54].life_chests = [LifeChest("Jacques: life chest near Unika", 0x77C8E, 0x40),
+                          LifeChest("Jacques: life chest near Revilo", 0x77C92, 0x01)]
+levels[61].life_chests = [LifeChest("Gnorc Cove: life chest near Lateef", 0x77CF6, 0x80),
+                          LifeChest("Gnorc Cove: life chest near Tomas", 0x77CFF, 0x20)]
+levels[62].life_chests = [LifeChest("Twilight Harbor: life chest near start", 0x77D0C, 0x80),
+                          LifeChest("Twilight Harbor: life chest top of supercharge ramp", 0x77D10, 0x20),
+                          LifeChest("Twilight Harbor: life chest after supercharge jump", 0x77D16, 0x80)]
+
+index = 269
+for level in levels:
+    level = levels[level]
+    for life_chest in level.life_chests:
+        print(f'"{life_chest.name}": {index},')
+        index += 1

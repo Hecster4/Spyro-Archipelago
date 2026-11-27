@@ -7,7 +7,7 @@ from . import items, locations, regions, rules, web_world
 from . import options as spyro_options  # rename due to a name conflict with World.options
 
 class SpyroWorld(World):
-    game = "Spyro the Dragon"
+    game = "Spyro the Dragon (DuckStation)"
     
     web = web_world.SpyroWebWorld()
     
@@ -38,5 +38,5 @@ class SpyroWorld(World):
     def fill_slot_data(self) -> Mapping[str, Any]:
         # If you need access to the player's chosen options on the client side, there is a helper for that.
         return self.options.as_dict(
-            "deathlink", "portal_locks", "starting_levels", "include_gnastys_loot"
+            "deathlink", "portal_locks", "starting_portals", "include_gnastys_loot", "life_chest_checks"
         )

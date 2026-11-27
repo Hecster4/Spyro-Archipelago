@@ -9,10 +9,6 @@ from BaseClasses import Item, ItemClassification
 if TYPE_CHECKING:
     from .world import SpyroWorld
     
-gemsTotal = 0
-dragonsTotal = 0
-eggsTotal = 0
-    
 ITEM_NAME_TO_ID = {
     "100 Gems": 1,
     "Dragon": 2,
@@ -109,7 +105,7 @@ def create_all_items(world: SpyroWorld) -> None:
         itempool.append(world.create_item("Egg"))
     if world.options.portal_locks:
         levels = ["Stone Hill Unlocked", "Dark Hollow Unlocked", "Town Square Unlocked"]
-        for i in range(world.options.starting_levels):
+        for i in range(world.options.starting_portals):
             level = choice(levels)
             levels.remove(level)
             world.push_precollected(world.create_item(f"{level}"))

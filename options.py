@@ -12,15 +12,15 @@ class Deathlink(Toggle):
 
 class PortalLocks(Toggle):
     """
-    Lock levels until you find the unlock level item.
+    Lock portals until you find the unlock portal item.
     """
     display_name = "Portal Locks"
     
     default = 'false'
     
-class StartingLevels(Range):
+class StartingPortals(Range):
     """
-    If level locks is enabled how many unlocked levels to start with.
+    If level locks is enabled how many unlocked portals to start with.
     """
     display_name = "Starting Levels"
     
@@ -38,15 +38,24 @@ class IncludeGnastysLoot(Toggle):
     
     default = 'false'
     
+class LifeChestChecks(Toggle):
+    """
+    Include all 42 life chests in world as checks
+    """
+    display_name = "Life Chest Checks"
+    
+    default = 'false'
+    
 @dataclass
 class SpyroOptions(PerGameCommonOptions):
     deathlink: Deathlink
     portal_locks: PortalLocks
-    starting_levels: StartingLevels
+    starting_portals: StartingPortals
     include_gnastys_loot: IncludeGnastysLoot
+    life_chest_checks: LifeChestChecks
     
 option_groups = [
     OptionGroup(
         "Gameplay Options",
-        [Deathlink, PortalLocks, StartingLevels, IncludeGnastysLoot]
+        [Deathlink, PortalLocks, StartingPortals, IncludeGnastysLoot, LifeChestChecks]
     )]
